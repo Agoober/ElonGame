@@ -18,20 +18,27 @@ class GameScene: SKScene {
     
     //Boolean
     var joystickAction = false
-    var playerIsFacingRight: Bool = true
     
     //Measure
     var knobRadius: CGFloat = 50.0
+    
+    //Sprite Engine
     var previousTimeInterval: TimeInterval = 0
+    var playerIsFacingRight: Bool = true
     let playerSpeed = 4.0
     
-    
+    //Player state
+    var playerStateMachine: GKStateMachine!
     
     // didMove
     override func didMove(to view: SKView) {
         player = childNode(withName: "player")
         joystick = childNode(withName: "joystick")
         joystickKnob = joystick?.childNode(withName: "knob")
+        
+        playerStateMachine = GKStateMachine(states: [
+            JumpingState(playerNode: player!)
+            ])
         
     }
     
@@ -48,6 +55,8 @@ extension GameScene {
             if let joystickKnob = joystickKnob{
                 let location = touch.location(in: joystick!)
                 joystickAction = joystickKnob.frame.contains(location)
+                
+                playerStateMachine.enter(JumpingState.self)
             }
         }
         
