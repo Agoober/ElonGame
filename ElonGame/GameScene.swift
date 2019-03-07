@@ -15,6 +15,12 @@ class GameScene: SKScene {
     var player: SKNode?
     var joystick: SKNode?
     var joystickKnob: SKNode?
+    var cameraNode: SKCameraNode?
+    var mountain1: SKNode?
+    var mountain2: SKNode?
+    var mountain3: SKNode?
+    var moon: SKNode?
+    var stars: SKNode?
     
     //Boolean
     var joystickAction = false
@@ -32,9 +38,18 @@ class GameScene: SKScene {
     
     // didMove
     override func didMove(to view: SKView) {
+        
+        physicsWorld.contactDelegate = self
+        
         player = childNode(withName: "player")
         joystick = childNode(withName: "joystick")
         joystickKnob = joystick?.childNode(withName: "knob")
+        cameraNode = childNode(withName: "cameraNode") as? SKCameraNode
+        mountain1 = childNode(withName: "mountain1")
+        mountain2 = childNode(withName: "mountain2")
+        mountain3 = childNode(withName: "mountain3")
+        moon = childNode(withName: "moon")
+        stars = childNode(withName: "stars")
         
         playerStateMachine = GKStateMachine(states: [
             JumpingState(playerNode: player!),
@@ -44,6 +59,11 @@ class GameScene: SKScene {
             StunnedState(playerNode: player!)
             ])
         playerStateMachine.enter(IdleState.self)
+        
+        // Timer
+        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) {(timer) in
+            self.spawnMeteor()
+        }
     }
     
 }
@@ -129,6 +149,11 @@ extension GameScene {
         let deltaTime = currentTime - previousTimeInterval
         previousTimeInterval = currentTime
         
+        //Camera
+        cameraNode?.position.x = player!.position.x
+        joystick?.position.y = (cameraNode?.position.y)! - 100
+        joystick?.position.x = (cameraNode?.position.x)! - 300
+        
         //Player movement
         guard let joystickKnob = joystickKnob else {
             return
@@ -163,5 +188,114 @@ extension GameScene {
         
         player?.run(faceAction)
         
+        //Backgroud Parallax
+        
+        let parallax1 = SKAction.moveTo(x: (player?.position.x)!/(-10), duration: 0.0)
+        mountain1?.run(parallax1)
+        
+        let parallax2 = SKAction.moveTo(x: (player?.position.x)!/(-20), duration: 0.0)
+        mountain2?.run(parallax2)
+        
+        let parallax3 = SKAction.moveTo(x: (player?.position.x)!/(-40), duration: 0.0)
+        mountain3?.run(parallax3)
+        
+        let parallax4 = SKAction.moveTo(x: (cameraNode?.position.x)!, duration: 0.0)
+        moon?.run(parallax4)
+        
+        let parallax5 = SKAction.moveTo(x: (cameraNode?.position.x)!, duration: 0.0)
+        stars?.run(parallax5)
+        
     }
+}
+
+
+// MARK: Collision
+extension GameScene: SKPhysicsContactDelegate {
+    
+    struct Collision {
+        enum Masks: Int {
+            case killing, player, reward, ground
+            var bitMask: UInt32 {return 1 << self.rawValue}
+        }
+        
+        let masks: (first: UInt32, second: UInt32)
+        
+        func matches (_ first: Masks, _ second: Masks) -> Bool {
+            return (first.bitMask == masks.first && second.bitMask == masks.second) || (first.bitMask == masks.second && second.bitMask == masks.first)
+        }
+    }
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        let collision = Collision(masks: (first: contact.bodyA.categoryBitMask, second: contact.bodyB.categoryBitMask))
+        
+        if collision.matches(.player, .killing) {
+            let die = SKAction.move(to: CGPoint(x: -300, y: -100), duration: 0.0)
+            player?.run(die)
+        }
+        
+        if collision.matches(.player, .ground) {
+            playerStateMachine.enter(LandingState.self)
+        }
+        
+        if collision.matches(.ground, .killing) {
+            if contact.bodyA.node?.name == "Meteor", let meteor = contact.bodyA.node {
+                createMolten(at: meteor.position)
+                meteor.removeFromParent()
+            }
+            
+            if contact.bodyB.node?.name == "Meteor", let meteor = contact.bodyB.node {
+                createMolten(at: meteor.position)
+                meteor.removeFromParent()
+            }
+        }
+    }
+    
+}
+
+
+//MARK: Meteor
+extension GameScene {
+    func spawnMeteor() {
+        let node = SKSpriteNode(imageNamed: "meteor")
+        node.name = "Meteor"
+        let randomXPosition = Int(arc4random_uniform(UInt32(self.size.width)))
+        
+        node.position = CGPoint(x: -randomXPosition, y: 270)
+        node.anchorPoint = CGPoint(x: 0.5, y: 1)
+        node.zPosition = 5
+        
+        let physicsBody = SKPhysicsBody(circleOfRadius: 30)
+        node.physicsBody = physicsBody
+        
+        physicsBody.categoryBitMask = Collision.Masks.killing.bitMask
+        physicsBody.collisionBitMask = Collision.Masks.player.bitMask | Collision.Masks.ground.bitMask
+        physicsBody.contactTestBitMask = Collision.Masks.player.bitMask | Collision.Masks.ground.bitMask
+        physicsBody.fieldBitMask = Collision.Masks.player.bitMask | Collision.Masks.ground.bitMask
+        
+        physicsBody.affectedByGravity = true
+        physicsBody.allowsRotation = false
+        physicsBody.restitution = 0.2
+        physicsBody.friction = 10
+        
+        addChild(node)
+    }
+    
+    func createMolten(at position: CGPoint) {
+        let node = SKSpriteNode(imageNamed: "molten")
+        node.position.x = position.x
+        node.position.y = position.y - 60
+        node.zPosition = 4
+        
+        addChild(node)
+        
+        let action = SKAction.sequence([
+            SKAction.fadeIn(withDuration: 0.1),
+            SKAction.wait(forDuration: 3.0),
+            SKAction.fadeOut(withDuration: 0.2),
+            SKAction.removeFromParent()
+            ])
+        
+        node.run(action)
+    }
+    
 }
