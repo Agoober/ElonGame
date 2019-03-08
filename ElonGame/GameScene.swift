@@ -16,9 +16,9 @@ class GameScene: SKScene {
     var joystick: SKNode?
     var joystickKnob: SKNode?
     var cameraNode: SKCameraNode?
-    var mountain1: SKNode?
-    var mountain2: SKNode?
-    var mountain3: SKNode?
+    var mountains1: SKNode?
+    var mountains2: SKNode?
+    var mountains3: SKNode?
     var moon: SKNode?
     var stars: SKNode?
     
@@ -56,9 +56,9 @@ class GameScene: SKScene {
         joystick = childNode(withName: "joystick")
         joystickKnob = joystick?.childNode(withName: "knob")
         cameraNode = childNode(withName: "cameraNode") as? SKCameraNode
-        mountain1 = childNode(withName: "mountain1")
-        mountain2 = childNode(withName: "mountain2")
-        mountain3 = childNode(withName: "mountain3")
+        mountains1 = childNode(withName: "mountains1")
+        mountains2 = childNode(withName: "mountains2")
+        mountains3 = childNode(withName: "mountains3")
         moon = childNode(withName: "moon")
         stars = childNode(withName: "stars")
         
@@ -195,6 +195,7 @@ extension GameScene {
                 }
             } else {
                 dying()
+                showDieScene()
             }
             invisible()
         }
@@ -213,6 +214,12 @@ extension GameScene {
         self.removeAllActions()
         fillHearts(count: 3)
     }
+    
+    func showDieScene() {
+        let gameOverScene = GameScene(fileNamed: "GameOver")
+        self.view?.presentScene(gameOverScene)
+    }
+    
 }
 
 // MARK: Game Loop
@@ -265,13 +272,13 @@ extension GameScene {
         //Backgroud Parallax
         
         let parallax1 = SKAction.moveTo(x: (player?.position.x)!/(-10), duration: 0.0)
-        mountain1?.run(parallax1)
+        mountains1?.run(parallax1)
         
         let parallax2 = SKAction.moveTo(x: (player?.position.x)!/(-20), duration: 0.0)
-        mountain2?.run(parallax2)
+        mountains2?.run(parallax2)
         
         let parallax3 = SKAction.moveTo(x: (player?.position.x)!/(-40), duration: 0.0)
-        mountain3?.run(parallax3)
+        mountains3?.run(parallax3)
         
         let parallax4 = SKAction.moveTo(x: (cameraNode?.position.x)!, duration: 0.0)
         moon?.run(parallax4)
@@ -323,7 +330,7 @@ extension GameScene: SKPhysicsContactDelegate {
             }
             else if contact.bodyB.node?.name == "jewel" {
                 contact.bodyB.node?.physicsBody?.categoryBitMask = 0
-                //contact.bodyA.node?.removeFromParent()
+                contact.bodyB.node?.removeFromParent()
             }
             if rewardIsNotTouched {
                 
