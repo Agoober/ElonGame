@@ -322,7 +322,7 @@ extension GameScene: SKPhysicsContactDelegate {
         }
         
         
-        // TODO: Find out how to remove jewel.
+        
         if collision.matches(.player, .reward) {
             if contact.bodyA.node?.name == "jewel" {
                 contact.bodyA.node?.physicsBody?.categoryBitMask = 0
@@ -334,7 +334,7 @@ extension GameScene: SKPhysicsContactDelegate {
             }
             if rewardIsNotTouched {
                 
-                //rewardIsNotTouched = false
+                rewardIsNotTouched = false
                 rewardTouch()
                 rewardIsNotTouched = false
             }
